@@ -1,0 +1,37 @@
+module alu_adder (
+    output error,    
+    input a [8], 
+    input b [8], 
+    output calculated_output [8], 
+    input alu_fn[4],
+    output z,
+    output v,
+    output n
+  ) {
+//  var count;
+sig xb [8];
+sig sumOut [8];
+
+  always {
+    error = 0;
+    // a[7] and b[7] are the signed bits
+    sumOut = 8b0;
+    xb = (32x{alu_fn[0]})^b;
+    
+    if(alu_fn[3:1] == 0){
+      sumOut = a+xb+alu_fn[0];    
+    }
+    else if(alu_fn == b10){   //multiply??
+      sumOut = a*b;
+    }
+    else error = 1;
+    calculated_output = sumOut;
+    
+    if(sumOut == 0) z = 1;
+    else z = 0;
+    n = sumOut[7];
+    v = (a[7]&xb[7]&~sumOut[7])|(!a[7]&~xb[7]&sumOut[7]); 
+    //instead of this, we can check if sumOut is more than 8 bits long
+    //9th bit should be a 1 if it overflows
+  }
+}

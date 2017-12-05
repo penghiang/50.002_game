@@ -1,0 +1,23 @@
+module counter (
+    input clk,  // clock
+    input rst,  // reset
+    output out,
+    output clock
+  ) {
+  
+dff count[26](.clk(clk),.rst(rst));
+
+  always {
+    out = 0;
+    clock = 0;
+    count.d = count.q+1;
+    //if(count.q == 0){
+     // clock = 1;
+    //}
+    if(count.q[25] == 1){
+      count.d = 0;
+      clock = 1;
+    }
+    
+  }
+}
