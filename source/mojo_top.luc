@@ -28,11 +28,13 @@ module mojo_top (
     ram ram;
     .rst(rst){  //clock and rst not really required in each individual Source.
       counter clock;
-      fsm state = {START, SHOW, PLAY, ADD, READ, READBUFFER, WRITE, WRITEBUFFER};
+      counter pause;
+      fsm state = {START, SHOW, PLAY, CORRECT, ADD, READ, READBUFFER, WRITE, WRITEBUFFER};
       dff mem_pointer[5];
       dff current_pointer[5];
       dff current_rotation;
       dff current_memory[8];
+      dff current_input[5];
     }
   }  
   always {
@@ -64,6 +66,7 @@ module mojo_top (
     ram.write_data = 0;
     ram.address = 0; 
     clock.reset = 0;      // another reset that works similar to rst.
+    pause.reset = 0;
     translator.seed = 0;
     
     case(state.q){
@@ -74,8 +77,8 @@ module mojo_top (
         } else {
         }
       state.ADD:
-        translator.seed = clock.seed;
-        clock.reset = 1;        // without this, the first stage would be randomly cut shorter than other stages. 
+        translator.seed = clock.seed;  // clock is only used for seed
+        pause.reset = 1;        // without this, the first stage would be randomly cut shorter than other stages. 
         if (clock.seed == b101 | clock.seed == b110){
           current_rotation.d = clock.seed[1];
           state.d = state.READ;
@@ -93,7 +96,7 @@ module mojo_top (
         io_led[1][0] = current_rotation.q;
         io_led[1][7:3] = current_memory.q[4:0];
         io_led[0] = ram.read_data;
-        if(clock.clock){
+        if(pause.clock){
           if(current_pointer.q + 1 >= mem_pointer.q){
             current_pointer.d = 0;
             state.d = state.PLAY;
@@ -113,7 +116,7 @@ module mojo_top (
         ram.address = current_pointer.q;
         state.d = state.WRITE;
       state.WRITE:
-        clock.reset = 1;
+        pause.reset = 1;
         rotator.direction = current_rotation.q;
         rotator.current_data = current_memory.q;
         ram.address = current_pointer.q;
@@ -132,10 +135,36 @@ module mojo_top (
         state.d = state.READ;
       state.PLAY:
         io_led[2][6] = 1;
-        if (clock.clock){
-          state.d = state.START;
+        ram.address = current_pointer.q;
+        current_input.d[4] = io_button[3];  // L
+        current_input.d[3] = io_button[2];  // D
+        current_input.d[2] = io_button[4];  // R
+        current_input.d[1] = io_button[0];  // U
+        current_input.d[0] = io_button[1];  // C
+        io_led[1] = io_button[4:0];
+        pause.reset = 1;          // a duplicate clock, this is for delaying, so that it doesn't affect the seed.
+        if(current_input.q != 5b0){
+          if(current_input.q == ram.read_data[4:0]){
+            state.d = state.CORRECT;
+          } else {
+            current_input.d = 0;
+            mem_pointer.d = 0;
+            current_pointer.d = 0;
+            state.d = state.START;
+          }
         } else {
-          
+        }
+      state.CORRECT:
+        current_input.d = 0;
+        if(pause.clock){
+          current_pointer.d = current_pointer.q + 1;
+          if (current_pointer.q + 1 >= mem_pointer.q){
+            current_pointer.d = 0;
+            state.d = state.ADD;
+          } else {
+            state.d = state.PLAY;
+          }
+        } else {
         }
     }   
   }
