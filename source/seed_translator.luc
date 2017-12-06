@@ -1,0 +1,23 @@
+module seed_translator (
+    input seed[3],
+    output out[5]
+  ) {
+
+  always {
+    out = 0;
+    case(seed){
+      b000:
+        out = b10000;
+      b001:
+        out = b01000;
+      b010:
+        out = b00100;
+      b011:
+        out = b00010;
+      b100:
+        out = b00001;
+      b111:
+        out = b00001;
+    }
+  }
+}
