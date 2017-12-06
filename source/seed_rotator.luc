@@ -1,0 +1,28 @@
+module seed_rotator (
+    input current_data[8],
+    input direction,
+    output rotated_data[8]
+  ) {
+  alu_combined alu;
+  always {
+    alu.a = current_data;
+    alu.b = 0;
+    alu.alu_fn = b100000;    // ALUFN for SHL
+    if(direction){
+      alu.alu_fn = b100001;  // ALUFN for SHR
+    }
+    rotated_data = alu.alu;
+    case(current_data){      // case only overrides rotated_seed on exceptions, else it's shifted according to direction
+      8b1:
+        rotated_data = current_data;
+      8b10:
+        if(direction){
+          rotated_data = b10000;
+        } 
+      8b10000:
+        if(~direction){
+          rotated_data = b00010;
+        }
+    }
+  }
+}
