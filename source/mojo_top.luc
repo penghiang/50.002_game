@@ -19,6 +19,7 @@ module mojo_top (
   ) {
   
   sig rst;                  // reset signal
+  seed_translator translator;
   .clk(clk) {
     // The reset conditioner is used to synchronize the reset signal to the FPGA
     // clock. This ensures the entire FPGA comes out of reset at the same time.
@@ -63,6 +64,7 @@ module mojo_top (
     ram.write_data = 0;
     ram.address = 0; 
     clock.reset = 0;      // another reset that works similar to rst.
+    translator.seed = 0;
     
     case(state.q){
       state.START:
@@ -73,7 +75,8 @@ module mojo_top (
       state.ADD:
         ram.address = mem_pointer.q;
         mem_pointer.d = mem_pointer.q+1;
-        ram.write_data = clock.seed;
+        translator.seed = clock.seed;
+        ram.write_data = translator.out;
         ram.write_en = 1;
         clock.reset = 1;        // without this, the first stage would be randomly cut shorter than other stages. 
         state.d = state.SHOW;
