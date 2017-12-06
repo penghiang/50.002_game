@@ -20,17 +20,19 @@ module mojo_top (
   
   sig rst;                  // reset signal
   seed_translator translator;
+  seed_rotator rotator;
   .clk(clk) {
     // The reset conditioner is used to synchronize the reset signal to the FPGA
     // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
     ram ram;
     .rst(rst){  //clock and rst not really required in each individual Source.
-      alu_combined alu;
       counter clock;
-      fsm state = {START, SHOW, PLAY, ADD};
+      fsm state = {START, SHOW, PLAY, ADD, READ, READBUFFER, WRITE, WRITEBUFFER};
       dff mem_pointer[5];
       dff current_pointer[5];
+      dff current_rotation;
+      dff current_memory[8];
     }
   }  
   always {
@@ -47,11 +49,9 @@ module mojo_top (
     io_led[2] = 8b0;
     io_seg = 8hff;          // turn segments off
     io_sel = 4hf;           // select no digits
-    
-    
-    alu.a = io_dip[1];
-    alu.b = io_dip[0];
-    alu.alu_fn = io_dip[2][5:0];
+    rotator.direction = 0;
+    rotator.current_data = 0;
+
     /*
     io_led[2] = alu.alu; //8 bit output of function
     io_led[1][2] = alu.z;
@@ -73,27 +73,64 @@ module mojo_top (
           state.d = state.ADD;
         }
       state.ADD:
-        ram.address = mem_pointer.q;
-        mem_pointer.d = mem_pointer.q+1;
         translator.seed = clock.seed;
-        ram.write_data = translator.out;
-        ram.write_en = 1;
         clock.reset = 1;        // without this, the first stage would be randomly cut shorter than other stages. 
-        state.d = state.SHOW;
+        if (clock.seed == b101 | clock.seed == b110){
+          current_rotation.d = clock.seed[1];
+          state.d = state.READ;
+        } else {
+          ram.address = mem_pointer.q;
+          mem_pointer.d = mem_pointer.q+1;
+          ram.write_data = translator.out;
+          ram.write_en = 1;
+          current_pointer.d = 0;
+          state.d = state.SHOW;
+        }
       state.SHOW:
         ram.address = current_pointer.q;
         io_led[2][7] = 1;
+        io_led[1][0] = current_rotation.q;
+        io_led[1][7:3] = current_memory.q[4:0];
         io_led[0] = ram.read_data;
         if(clock.clock){
-          if(current_pointer.q + 1 == mem_pointer.q){
-            state.d = state.START;
+          if(current_pointer.q + 1 >= mem_pointer.q){
+            state.d = state.PLAY;
           } else {
             current_pointer.d = current_pointer.q + 1;
           }
         }
       state.PLAY:
         io_led[2][6] = 1;
-    }
-    
+        if (clock.clock){
+          state.d = state.START;
+        }
+      state.READ:
+        ram.write_en = 0;
+        ram.address = current_pointer.q;
+        current_memory.d = ram.read_data;
+        state.d = state.READBUFFER;
+      state.READBUFFER:
+        rotator.direction = current_rotation.q;
+        rotator.current_data = current_memory.q;
+        ram.address = current_pointer.q;
+        state.d = state.WRITE;
+      state.WRITE:
+        rotator.direction = current_rotation.q;
+        rotator.current_data = current_memory.q;
+        ram.address = current_pointer.q;
+        ram.write_data = rotator.rotated_data;
+        ram.write_en = 1;
+        if (current_pointer.q + 1 >= mem_pointer.q){
+          current_pointer.d = 0;
+          state.d = state.SHOW;
+        } else { 
+          state.d = state.WRITEBUFFER;
+        }
+      state.WRITEBUFFER:
+        ram.write_en = 0;
+        current_pointer.d = current_pointer.q + 1;
+        ram.address = current_pointer.q+1;
+        state.d = state.READ;
+    }   
   }
 }

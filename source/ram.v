@@ -1,6 +1,6 @@
 module ram #(
     parameter SIZE = 8,  // size of each entry
-    parameter DEPTH = 32  // number of entries
+    parameter DEPTH = 64  // number of entries
   )(
     input clk,                         // clock
     input [$clog2(DEPTH)-1:0] address, // address to read or write

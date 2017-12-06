@@ -2,6 +2,7 @@
 <project name="50.002 game" board="Mojo V3" language="Lucid">
   <files>
     <src>seed_translator.luc</src>
+    <src>seed_rotator.luc</src>
     <src>alu_shifter.luc</src>
     <src>alu_comparator.luc</src>
     <src>ram.v</src>
