@@ -98,11 +98,13 @@ module mojo_top (
           } else {
             current_pointer.d = current_pointer.q + 1;
           }
+        } else {
         }
       state.PLAY:
         io_led[2][6] = 1;
         if (clock.clock){
           state.d = state.START;
+        } else {
         }
       state.READ:
         ram.write_en = 0;
@@ -129,7 +131,7 @@ module mojo_top (
       state.WRITEBUFFER:
         ram.write_en = 0;
         current_pointer.d = current_pointer.q + 1;
-        ram.address = current_pointer.q+1;
+        ram.address = current_pointer.q+1;        //THIS IS VERY IMPORTANT BECAUSE OF STUFF
         state.d = state.READ;
     }   
   }
