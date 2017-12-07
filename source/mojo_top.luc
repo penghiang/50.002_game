@@ -15,7 +15,9 @@ module mojo_top (
     output io_seg [8],      // 7-segment LEDs on IO Shield
     output io_sel [4],      // Digit select on IO Shield
     input io_button [5],    // 5 buttons on IO Shield
-    input io_dip [3][8]     // DIP switches on IO Shield
+    input io_dip [3][8],     // DIP switches on IO Shield
+    input button[5],
+    output io_pin[5]
   ) {
   
   sig rst;                  // reset signal
@@ -53,15 +55,9 @@ module mojo_top (
     io_sel = 4hf;           // select no digits
     rotator.direction = 0;
     rotator.current_data = 0;
-
-    /*
-    io_led[2] = alu.alu; //8 bit output of function
-    io_led[1][2] = alu.z;
-    io_led[1][1] = alu.v;
-    io_led[1][0] = alu.n;
-    io_led[1][7] = alu.error; //if this led lights up it's an unknown alu_fn
-    */
     
+    io_pin[4:0] = 0;
+        
     ram.write_en = 0;       
     ram.write_data = 0;
     ram.address = 0; 
@@ -69,11 +65,16 @@ module mojo_top (
     pause.reset = 0;
     translator.seed = 0;
     
+    io_led[1][4:0] = button[4:0];
+    
     case(state.q){
       state.START:
         current_pointer.d = 0;
-        if (io_button[4]){
+        io_pin[4:0] = 5b11111;
+        if (button[0]){      // io_button[4]
           state.d = state.ADD;
+        } else if (io_button[0]) {
+          io_pin[4:0] = 0;
         } else {
         }
       state.ADD:
@@ -93,9 +94,8 @@ module mojo_top (
       state.SHOW:
         ram.address = current_pointer.q;
         io_led[2][7] = 1;
-        io_led[1][0] = current_rotation.q;
-        io_led[1][7:3] = current_memory.q[4:0];
         io_led[0] = ram.read_data;
+        io_pin[4:0] = ram.read_data[4:0]; // io_led[0] = ram.read_data;
         if(pause.clock){
           if(current_pointer.q + 1 >= mem_pointer.q){
             current_pointer.d = 0;
@@ -136,12 +136,14 @@ module mojo_top (
       state.PLAY:
         io_led[2][6] = 1;
         ram.address = current_pointer.q;
-        current_input.d[4] = io_button[3];  // L
-        current_input.d[3] = io_button[2];  // D
-        current_input.d[2] = io_button[4];  // R
-        current_input.d[1] = io_button[0];  // U
-        current_input.d[0] = io_button[1];  // C
-        io_led[1] = io_button[4:0];
+        //current_input.d[4] = io_button[3];  // L
+        //current_input.d[3] = io_button[2];  // D
+        //current_input.d[2] = io_button[4];  // R
+        //current_input.d[1] = io_button[0];  // U
+        //current_input.d[0] = io_button[1];  // C
+        current_input.d[4:0] = button[4:0];
+        //io_led[1] = io_button[4:0];
+        io_pin[4:0] = button[4:0];
         pause.reset = 1;          // a duplicate clock, this is for delaying, so that it doesn't affect the seed.
         if(current_input.q != 5b0){
           if(current_input.q == ram.read_data[4:0]){
