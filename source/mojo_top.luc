@@ -16,8 +16,8 @@ module mojo_top (
     output io_sel [4],      // Digit select on IO Shield
     input io_button [5],    // 5 buttons on IO Shield
     input io_dip [3][8],     // DIP switches on IO Shield
-    input button[5],
-    output io_pin[5]
+    input button[6],
+    output io_pin[6]
   ) {
   
   sig rst;                  // reset signal
@@ -31,7 +31,7 @@ module mojo_top (
     .rst(rst){  //clock and rst not really required in each individual Source.
       counter clock;
       counter pause;
-      fsm state = {START, SHOW, PLAY, CORRECT, ADD, READ, READBUFFER, WRITE, WRITEBUFFER};
+      fsm state = {START, SHOW, PLAY, CORRECT, ADD, READ, READBUFFER, WRITE, WRITEBUFFER, BUZZ};
       dff mem_pointer[5];
       dff current_pointer[5];
       dff current_rotation;
@@ -56,7 +56,7 @@ module mojo_top (
     rotator.direction = 0;
     rotator.current_data = 0;
     
-    io_pin[4:0] = 0;
+    io_pin[5:0] = 0;
         
     ram.write_en = 0;       
     ram.write_data = 0;
@@ -71,7 +71,7 @@ module mojo_top (
       state.START:
         current_pointer.d = 0;
         io_pin[4:0] = 5b11111;
-        if (button[0]){      // io_button[4]
+        if (button[5]){      // io_button[4]
           state.d = state.ADD;
         } else if (io_button[0]) {
           io_pin[4:0] = 0;
@@ -147,12 +147,13 @@ module mojo_top (
         pause.reset = 1;          // a duplicate clock, this is for delaying, so that it doesn't affect the seed.
         if(current_input.q != 5b0){
           if(current_input.q == ram.read_data[4:0]){
+            pause.reset = 1;
             state.d = state.CORRECT;
           } else {
             current_input.d = 0;
             mem_pointer.d = 0;
             current_pointer.d = 0;
-            state.d = state.START;
+            state.d = state.BUZZ;
           }
         } else {
         }
@@ -167,6 +168,11 @@ module mojo_top (
             state.d = state.PLAY;
           }
         } else {
+        }
+      state.BUZZ:
+        io_pin[5] = 1;
+        if (pause.clock) {
+          state.d = state.START;
         }
     }   
   }
