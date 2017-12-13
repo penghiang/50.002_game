@@ -1,4 +1,4 @@
-module counter (
+module count (
     input clk,  // clock
     input rst,  // reset
     input reset,

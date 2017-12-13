@@ -1,0 +1,33 @@
+module lcd_screen (
+    input clk,  // clock
+    input rst,  // reset
+    output out,
+    output led_pin[7]
+  ) {
+  .clk(clk),.rst(rst){
+    dff counter[29];
+    dff initialise_lcd[7];
+    fsm init_lcd = {INIT, INIT2, NORMAL};
+  }
+  always {
+    out = 0;
+    led_pin[3:0] = b0000;
+    led_pin[6:4] = b0;
+    counter.d = counter.q + 1;
+    if (counter.q[28]){
+      counter.d = 0;
+    }
+    led_pin[5] = counter.q[25];
+   
+    case(init_lcd.q){
+      init_lcd.INIT:
+        led_pin[6:0] = b0000011;
+        if(counter.q[26] == 1){
+          init_lcd.d = init_lcd.INIT2;
+          counter.d = 0;
+        }
+      init_lcd.INIT2:
+        led_pin[6:0] = b000;
+    }
+  }
+}

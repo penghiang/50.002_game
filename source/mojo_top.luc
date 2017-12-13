@@ -29,8 +29,9 @@ module mojo_top (
     reset_conditioner reset_cond;
     ram ram;
     .rst(rst){  //clock and rst not really required in each individual Source.
-      counter clock;
-      counter pause;
+      count clock;
+      count pause;
+      shortcount shortpause;
       fsm state = {START, SHOW, PLAY, CORRECT, ADD, READ, READBUFFER, WRITE, WRITEBUFFER, BUZZ};
       dff mem_pointer[5];
       dff current_pointer[5];
@@ -63,6 +64,7 @@ module mojo_top (
     ram.address = 0; 
     clock.reset = 0;      // another reset that works similar to rst.
     pause.reset = 0;
+    shortpause.reset = 0;
     translator.seed = 0;
     
     io_led[1][4:0] = button[4:0];
@@ -147,7 +149,7 @@ module mojo_top (
         pause.reset = 1;          // a duplicate clock, this is for delaying, so that it doesn't affect the seed.
         if(current_input.q != 5b0){
           if(current_input.q == ram.read_data[4:0]){
-            pause.reset = 1;
+            shortpause.reset = 1;
             state.d = state.CORRECT;
           } else {
             current_input.d = 0;
@@ -159,7 +161,7 @@ module mojo_top (
         }
       state.CORRECT:
         current_input.d = 0;
-        if(pause.clock){
+        if(shortpause.clock){
           current_pointer.d = current_pointer.q + 1;
           if (current_pointer.q + 1 >= mem_pointer.q){
             current_pointer.d = 0;

@@ -1,0 +1,21 @@
+module level_mem (
+    input clk,  // clock
+    input rst,  // reset
+    input add,
+    output value[4],
+    output ovf
+  ) {
+dff val[4](.clk(clk),.rst(rst));
+  always {
+    value = val.q;
+    ovf = val.q == 9 && add;
+    if (add) {
+      if (val.q == 9){
+        val.d = 0;
+      }
+      else {
+        val.d = val.q+1;
+      }
+    }
+  }
+}

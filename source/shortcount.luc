@@ -1,0 +1,23 @@
+module shortcount (
+    input clk,  // clock
+    input rst,  // reset
+    input reset,
+    output clock
+  ) {
+  
+dff count[27](.clk(clk),.rst(rst));
+  
+  always {
+    clock = 0;
+    count.d = count.q+1;
+
+    if(count.q[24] == 1){
+      count.d = 0;
+      clock = 1;
+    }
+    
+    if(reset){
+      count.d = 0;
+    }
+  }
+}
